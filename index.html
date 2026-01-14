@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>连连看 - Link Link Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 900px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 36px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            color: white;
+        }
+
+        .info-item {
+            text-align: center;
+            padding: 10px 20px;
+        }
+
+        .info-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .game-board-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        #gameBoard {
+            display: grid;
+            gap: 3px;
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .tile {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .tile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .tile.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        }
+
+        .tile.hint {
+            animation: hint-pulse 0.5s ease-in-out 3;
+            border-color: #f39c12;
+            box-shadow: 0 0 20px rgba(243, 156, 18, 0.6);
+        }
+
+        .tile.empty {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        @keyframes hint-pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes tile-disappear {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        .tile.disappearing {
+            animation: tile-disappear 0.3s ease-out forwards;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            animation: modal-slide-in 0.3s ease-out;
+        }
+
+        @keyframes modal-slide-in {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-content h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .modal-content p {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #7f8c8d;
+        }
+
+        .modal-content .score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        #connectionCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .difficulty-btn {
+            padding: 8px 20px;
+            font-size: 14px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .difficulty-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .difficulty-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #764ba2;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .instructions h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .instructions ul {
+            list-style-position: inside;
+            color: #7f8c8d;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎮 连连看 🎮</h1>
+        
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">得分</div>
+                <div class="info-value" id="score">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">时间</div>
+                <div class="info-value" id="timer">00:00</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">剩余</div>
+                <div class="info-value" id="remaining">0</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">提示</div>
+                <div class="info-value" id="hints">3</div>
+            </div>
+        </div>
+
+        <div class="difficulty-selector">
+            <button class="difficulty-btn active" onclick="setDifficulty('easy')">简单</button>
+            <button class="difficulty-btn" onclick="setDifficulty('medium')">中等</button>
+            <button class="difficulty-btn" onclick="setDifficulty('hard')">困难</button>
+        </div>
+
+        <div class="game-board-container">
+            <div id="gameBoard"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="restartGame()">🔄 重新开始</button>
+            <button class="btn btn-secondary" onclick="showHint()">💡 提示</button>
+            <button class="btn btn-success" onclick="shuffleBoard()">🔀 重排</button>
+        </div>
+
+        <div class="instructions">
+            <h3>📖 游戏说明</h3>
+            <ul>
+                <li>点击两个相同的图案，如果它们可以用不超过两个拐弯的线连接，则消除</li>
+                <li>连接线上不能有其他图案阻挡</li>
+                <li>消除所有图案即可获胜</li>
+                <li>使用提示功能可以帮助你找到可消除的图案对</li>
+                <li>重排功能会重新排列剩余的图案</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="winModal" class="modal">
+        <div class="modal-content">
+            <h2>🎉 恭喜通关! 🎉</h2>
+            <p>你完成了连连看!</p>
+            <div class="score" id="finalScore">得分: 0</div>
+            <p id="finalTime">用时: 00:00</p>
+            <button class="btn btn-primary" onclick="closeModalAndRestart()">再玩一次</button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <h2>⏰ 时间到! ⏰</h2>
+            <p>很遗憾，时间用完了</p>
+            <div class="score" id="gameOverScore">得分: 0</div>
+            <button class="btn btn-primary" onclick="closeModalAndRestart()">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Configuration
+        const CONFIG = {
+            easy: { rows: 6, cols: 8, pairs: 24, timeLimit: 180 },
+            medium: { rows: 8, cols: 10, pairs: 40, timeLimit: 300 },
+            hard: { rows: 10, cols: 12, pairs: 60, timeLimit: 420 }
+        };
+
+        // Game icons (using emojis for simplicity)
+        const ICONS = [
+            '🍎', '🍊', '🍋', '🍇', '🍓', '🍒', '🥝', '🍑',
+            '🌸', '🌺', '🌻', '🌷', '🌹', '💐', '🍀', '🌴',
+            '🦋', '🐝', '🐞', '🦀', '🐠', '🐬', '🦜', '🦩',
+            '⭐', '🌙', '☀️', '🌈', '❄️', '🔥', '💎', '🎀',
+            '🎈', '🎁', '🎵', '🎶', '🏀', '⚽', '🎯', '🎪'
+        ];
+
+        // Game State
+        let board = [];
+        let selectedTile = null;
+        let score = 0;
+        let timeLeft = 0;
+        let timerInterval = null;
+        let remainingTiles = 0;
+        let hintsRemaining = 3;
+        let currentDifficulty = 'easy';
+        let isProcessing = false;
+
+        // DOM Elements
+        const gameBoard = document.getElementById('gameBoard');
+
+        // Initialize game
+        function initGame() {
+            const config = CONFIG[currentDifficulty];
+            board = [];
+            selectedTile = null;
+            score = 0;
+            timeLeft = config.timeLimit;
+            remainingTiles = config.pairs * 2;
+            hintsRemaining = 3;
+
+            // Create pairs
+            let tiles = [];
+            for (let i = 0; i < config.pairs; i++) {
+                const icon = ICONS[i % ICONS.length];
+                tiles.push(icon, icon);
+            }
+
+            // Generate solvable board
+            generateSolvableBoard(tiles);
+
+            renderBoard();
+            updateUI();
+            startTimer();
+        }
+
+        // Generate a solvable board layout
+        function generateSolvableBoard(tiles) {
+            const config = CONFIG[currentDifficulty];
+            let attempts = 0;
+            const maxAttempts = 100;
+
+            do {
+                // Shuffle tiles
+                tiles = shuffleArray(tiles);
+
+                // Create board
+                board = [];
+                let index = 0;
+                for (let row = 0; row < config.rows; row++) {
+                    board[row] = [];
+                    for (let col = 0; col < config.cols; col++) {
+                        board[row][col] = tiles[index++];
+                    }
+                }
+
+                attempts++;
+
+                // Check if board has at least one solvable pair
+                // For better gameplay, check for multiple solvable pairs
+            } while (!hasSolvablePairs() && attempts < maxAttempts);
+
+            // If still no solvable pairs after max attempts, create a guaranteed solvable layout
+            if (!hasSolvablePairs()) {
+                createGuaranteedSolvableBoard(tiles);
+            }
+        }
+
+        // Check if board has at least one solvable pair
+        function hasSolvablePairs() {
+            const config = CONFIG[currentDifficulty];
+            let solvableCount = 0;
+            const targetPairs = Math.max(6, Math.floor(config.pairs * 0.15)); // At least 6 or 15% of pairs
+
+            for (let row1 = 0; row1 < config.rows; row1++) {
+                for (let col1 = 0; col1 < config.cols; col1++) {
+                    if (board[row1][col1] === null) continue;
+
+                    for (let row2 = 0; row2 < config.rows; row2++) {
+                        for (let col2 = 0; col2 < config.cols; col2++) {
+                            if (row1 === row2 && col1 === col2) continue;
+                            if (board[row2][col2] === null) continue;
+                            if (board[row1][col1] !== board[row2][col2]) continue;
+
+                            const tile1 = { row: row1, col: col1 };
+                            const tile2 = { row: row2, col: col2 };
+
+                            if (findPath(tile1, tile2)) {
+                                solvableCount++;
+                                if (solvableCount >= targetPairs) return true; // Target reached
+                            }
+                        }
+                    }
+                }
+            }
+
+            return solvableCount >= targetPairs; // Check against target
+        }
+
+        // Create a guaranteed solvable board
+        function createGuaranteedSolvableBoard(tiles) {
+            const config = CONFIG[currentDifficulty];
+
+            // Shuffle tiles
+            tiles = shuffleArray(tiles);
+
+            // Create empty board
+            board = [];
+            for (let row = 0; row < config.rows; row++) {
+                board[row] = [];
+                for (let col = 0; col < config.cols; col++) {
+                    board[row][col] = null;
+                }
+            }
+
+            // Place tiles strategically to ensure solvability
+            // Place 35% of pairs in easily connectable positions
+            let placed = 0;
+            const easyPairs = Math.min(12, Math.floor(config.pairs * 0.35)); // 35% of pairs in easy positions
+
+            for (let i = 0; i < easyPairs && placed + 1 < tiles.length; i++) {
+                const tile1 = tiles[placed];
+                const tile2 = tiles[placed + 1];
+
+                // Use different placement strategies for variety
+                const strategy = i % 4;
+
+                if (strategy === 0) {
+                    // Adjacent horizontal (direct connection)
+                    const row = Math.floor(Math.random() * config.rows);
+                    const col = Math.floor(Math.random() * (config.cols - 1));
+                    if (board[row][col] === null && board[row][col + 1] === null) {
+                        board[row][col] = tile1;
+                        board[row][col + 1] = tile2;
+                        placed += 2;
+                        continue;
+                    }
+                } else if (strategy === 1) {
+                    // Adjacent vertical (direct connection)
+                    const row = Math.floor(Math.random() * (config.rows - 1));
+                    const col = Math.floor(Math.random() * config.cols);
+                    if (board[row][col] === null && board[row + 1][col] === null) {
+                        board[row][col] = tile1;
+                        board[row + 1][col] = tile2;
+                        placed += 2;
+                        continue;
+                    }
+                } else if (strategy === 2) {
+                    // L-shape on edge (one turn, easy via border)
+                    const row = Math.floor(Math.random() * config.rows);
+                    const col = Math.floor(Math.random() * config.cols);
+                    // Place on edge with adjacent empty space
+                    if (row === 0 && col < config.cols - 1 && board[row][col] === null && board[row][col + 1] === null) {
+                        board[row][col] = tile1;
+                        board[row][col + 1] = tile2;
+                        placed += 2;
+                        continue;
+                    }
+                    if (col === 0 && row < config.rows - 1 && board[row][col] === null && board[row + 1][col] === null) {
+                        board[row][col] = tile1;
+                        board[row + 1][col] = tile2;
+                        placed += 2;
+                        continue;
+                    }
+                } else {
+                    // Near corner (very easy to connect via border)
+                    const corners = [
+                        [0, 0], [0, config.cols - 1],
+                        [config.rows - 1, 0], [config.rows - 1, config.cols - 1]
+                    ];
+                    const cornerIdx = Math.floor(Math.random() * corners.length);
+                    const [crow, ccol] = corners[cornerIdx];
+
+                    // Find adjacent position to corner
+                    if (crow === 0 && ccol === 0) {
+                        // Top-left corner
+                        if (board[0][0] === null && board[0][1] === null) {
+                            board[0][0] = tile1;
+                            board[0][1] = tile2;
+                            placed += 2;
+                            continue;
+                        }
+                        if (board[0][0] === null && board[1][0] === null) {
+                            board[0][0] = tile1;
+                            board[1][0] = tile2;
+                            placed += 2;
+                            continue;
+                        }
+                    }
+                }
+
+                // Fallback: try to place in any available adjacent spots
+                let placedFallback = false;
+                for (let row = 0; row < config.rows && !placedFallback; row++) {
+                    for (let col = 0; col < config.cols && !placedFallback; col++) {
+                        // Try horizontal
+                        if (col < config.cols - 1 && board[row][col] === null && board[row][col + 1] === null) {
+                            board[row][col] = tile1;
+                            board[row][col + 1] = tile2;
+                            placed += 2;
+                            placedFallback = true;
+                        }
+                        // Try vertical
+                        if (!placedFallback && row < config.rows - 1 && board[row][col] === null && board[row + 1][col] === null) {
+                            board[row][col] = tile1;
+                            board[row + 1][col] = tile2;
+                            placed += 2;
+                            placedFallback = true;
+                        }
+                    }
+                }
+            }
+
+            // Place remaining tiles randomly
+            let index = placed;
+            for (let row = 0; row < config.rows; row++) {
+                for (let col = 0; col < config.cols; col++) {
+                    if (board[row][col] === null && index < tiles.length) {
+                        board[row][col] = tiles[index++];
+                    }
+                }
+            }
+        }
+
+        // Shuffle array
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Render game board
+        function renderBoard() {
+            const config = CONFIG[currentDifficulty];
+
+            // Set grid columns to match the visible board
+            gameBoard.style.gridTemplateColumns = `repeat(${config.cols}, 50px)`;
+            gameBoard.innerHTML = '';
+
+            for (let row = 0; row < config.rows; row++) {
+                for (let col = 0; col < config.cols; col++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.dataset.row = row;
+                    tile.dataset.col = col;
+
+                    if (board[row][col] === null) {
+                        tile.classList.add('empty');
+                    } else {
+                        tile.textContent = board[row][col];
+                        tile.addEventListener('click', () => handleTileClick(row, col));
+                    }
+
+                    gameBoard.appendChild(tile);
+                }
+            }
+
+            // Add canvas AFTER all tiles so it's on top
+            setupCanvas();
+        }
+
+        // Setup canvas for drawing connections
+        function setupCanvas() {
+            const config = CONFIG[currentDifficulty];
+
+            // Remove existing canvas if any
+            const existingCanvas = document.getElementById('connectionCanvas');
+            if (existingCanvas) {
+                existingCanvas.remove();
+            }
+
+            // Create new canvas
+            const canvas = document.createElement('canvas');
+            canvas.id = 'connectionCanvas';
+            canvas.style.position = 'absolute';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+            canvas.style.pointerEvents = 'none';
+            canvas.style.zIndex = '10';
+
+            // Calculate canvas size
+            const tileSize = 50;
+            const gap = 3;
+            const padding = 10;
+
+            const boardWidth = config.cols * tileSize + (config.cols - 1) * gap + padding * 2;
+            const boardHeight = config.rows * tileSize + (config.rows - 1) * gap + padding * 2;
+
+            canvas.width = boardWidth;
+            canvas.height = boardHeight;
+            canvas.style.width = boardWidth + 'px';
+            canvas.style.height = boardHeight + 'px';
+
+            // Add canvas to gameBoard (after all tiles)
+            gameBoard.appendChild(canvas);
+
+            // Update global reference
+            // Note: we need to get the new context
+            const newCanvas = document.getElementById('connectionCanvas');
+            if (newCanvas) {
+                // Update the context reference
+                // We need to access the ctx variable from outer scope
+                // Let's use a different approach
+                window.connectionCanvas = canvas;
+                window.connectionCtx = canvas.getContext('2d');
+            }
+        }
+
+        // Handle tile click
+        function handleTileClick(row, col) {
+            if (isProcessing || board[row][col] === null) return;
+
+            const clickedTile = { row, col };
+
+            if (selectedTile === null) {
+                selectedTile = clickedTile;
+                highlightTile(row, col);
+            } else if (selectedTile.row === row && selectedTile.col === col) {
+                clearSelection();
+            } else {
+                // Check if tiles match
+                if (board[selectedTile.row][selectedTile.col] === board[row][col]) {
+                    // Check if can connect
+                    const path = findPath(selectedTile, clickedTile);
+                    if (path) {
+                        eliminateTiles(selectedTile, clickedTile, path);
+                    } else {
+                        clearSelection();
+                        selectedTile = clickedTile;
+                        highlightTile(row, col);
+                    }
+                } else {
+                    clearSelection();
+                    selectedTile = clickedTile;
+                    highlightTile(row, col);
+                }
+            }
+        }
+
+        // Highlight selected tile
+        function highlightTile(row, col) {
+            const tile = getTileElement(row, col);
+            if (tile) tile.classList.add('selected');
+        }
+
+        // Clear selection
+        function clearSelection() {
+            document.querySelectorAll('.tile.selected').forEach(tile => {
+                tile.classList.remove('selected');
+            });
+            selectedTile = null;
+        }
+
+        // Get tile DOM element
+        function getTileElement(row, col) {
+            return document.querySelector(`.tile[data-row="${row}"][data-col="${col}"]`);
+        }
+
+        // Find path between two tiles (max 2 turns)
+        function findPath(start, end) {
+            const config = CONFIG[currentDifficulty];
+            
+            // Try direct connection (0 turns)
+            if (canConnectDirect(start, end)) {
+                return [start, end];
+            }
+
+            // Try 1 turn
+            let path = findPathWithOneTurn(start, end);
+            if (path) return path;
+
+            // Try 2 turns
+            path = findPathWithTwoTurns(start, end);
+            if (path) return path;
+
+            return null;
+        }
+
+        // Check if position is valid (within bounds)
+        function isValidPosition(row, col) {
+            const config = CONFIG[currentDifficulty];
+            return row >= -1 && row <= config.rows && col >= -1 && col <= config.cols;
+        }
+
+        // Check if position is empty (null or out of bounds which acts as empty)
+        function isEmpty(row, col) {
+            const config = CONFIG[currentDifficulty];
+            // Out of bounds positions are considered empty (virtual border)
+            if (row < 0 || row >= config.rows || col < 0 || col >= config.cols) {
+                return true;
+            }
+            return board[row][col] === null;
+        }
+
+        // Check if two tiles can connect directly (horizontal or vertical)
+        function canConnectDirect(start, end) {
+            if (start.row === end.row) {
+                // Horizontal connection
+                const minCol = Math.min(start.col, end.col);
+                const maxCol = Math.max(start.col, end.col);
+                
+                for (let col = minCol + 1; col < maxCol; col++) {
+                    if (!isEmpty(start.row, col)) return false;
+                }
+                return true;
+            } else if (start.col === end.col) {
+                // Vertical connection
+                const minRow = Math.min(start.row, end.row);
+                const maxRow = Math.max(start.row, end.row);
+                
+                for (let row = minRow + 1; row < maxRow; row++) {
+                    if (!isEmpty(row, start.col)) return false;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        // Find path with one turn
+        function findPathWithOneTurn(start, end) {
+            // Try corner 1: (start.row, end.col)
+            const corner1 = { row: start.row, col: end.col };
+            if (isEmpty(corner1.row, corner1.col)) {
+                if (canConnectDirect(start, corner1) && canConnectDirect(corner1, end)) {
+                    return [start, corner1, end];
+                }
+            }
+
+            // Try corner 2: (end.row, start.col)
+            const corner2 = { row: end.row, col: start.col };
+            if (isEmpty(corner2.row, corner2.col)) {
+                if (canConnectDirect(start, corner2) && canConnectDirect(corner2, end)) {
+                    return [start, corner2, end];
+                }
+            }
+
+            return null;
+        }
+
+        // Find path with two turns
+        function findPathWithTwoTurns(start, end) {
+            const config = CONFIG[currentDifficulty];
+
+            // Try all horizontal lines (including virtual borders)
+            for (let row = -1; row <= config.rows; row++) {
+                const point1 = { row: row, col: start.col };
+                const point2 = { row: row, col: end.col };
+
+                if (isEmpty(row, start.col) && isEmpty(row, end.col)) {
+                    if (canConnectDirect(start, point1) &&
+                        canConnectDirect(point1, point2) &&
+                        canConnectDirect(point2, end)) {
+                        return [start, point1, point2, end];
+                    }
+                }
+            }
+
+            // Try all vertical lines (including virtual borders)
+            for (let col = -1; col <= config.cols; col++) {
+                const point1 = { row: start.row, col: col };
+                const point2 = { row: end.row, col: col };
+
+                if (isEmpty(start.row, col) && isEmpty(end.row, col)) {
+                    if (canConnectDirect(start, point1) &&
+                        canConnectDirect(point1, point2) &&
+                        canConnectDirect(point2, end)) {
+                        return [start, point1, point2, end];
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // Eliminate tiles
+        function eliminateTiles(tile1, tile2, path) {
+            isProcessing = true;
+
+            // Draw connection line
+            drawConnection(path);
+
+            // Play sound
+            playSound();
+
+            setTimeout(() => {
+                // Clear connection
+                clearCanvas();
+
+                // Remove tiles from board
+                board[tile1.row][tile1.col] = null;
+                board[tile2.row][tile2.col] = null;
+
+                // Update UI
+                const element1 = getTileElement(tile1.row, tile1.col);
+                const element2 = getTileElement(tile2.row, tile2.col);
+
+                if (element1) element1.classList.add('disappearing');
+                if (element2) element2.classList.add('disappearing');
+
+                setTimeout(() => {
+                    if (element1) {
+                        element1.textContent = '';
+                        element1.classList.add('empty');
+                        element1.classList.remove('disappearing', 'selected');
+                    }
+                    if (element2) {
+                        element2.textContent = '';
+                        element2.classList.add('empty');
+                        element2.classList.remove('disappearing', 'selected');
+                    }
+
+                    // Update score
+                    score += 10;
+                    remainingTiles -= 2;
+                    updateUI();
+
+                    // Check win condition
+                    if (remainingTiles === 0) {
+                        winGame();
+                    }
+
+                    clearSelection();
+                    isProcessing = false;
+                }, 300);
+            }, 300);
+        }
+
+        // Draw connection line
+        function drawConnection(path) {
+            const canvas = document.getElementById('connectionCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            const firstPoint = getTileCenter(path[0].row, path[0].col);
+            ctx.moveTo(firstPoint.x, firstPoint.y);
+
+            for (let i = 1; i < path.length; i++) {
+                const point = getTileCenter(path[i].row, path[i].col);
+                ctx.lineTo(point.x, point.y);
+            }
+
+            ctx.stroke();
+        }
+
+        // Get tile center position (Canvas is now child of gameBoard)
+        function getTileCenter(row, col) {
+            const config = CONFIG[currentDifficulty];
+            const tileSize = 50;
+            const gap = 3;
+            const padding = 10;
+
+            // Canvas is positioned at (0, 0) within gameBoard
+            // So we can calculate positions directly relative to gameBoard
+
+            // Check if position is within the actual board
+            if (row >= 0 && row < config.rows && col >= 0 && col < config.cols) {
+                return {
+                    x: padding + col * (tileSize + gap) + tileSize / 2,
+                    y: padding + row * (tileSize + gap) + tileSize / 2
+                };
+            }
+
+            // Virtual border positions
+            if (row < 0) {
+                // Top border (above row 0)
+                return {
+                    x: padding + col * (tileSize + gap) + tileSize / 2,
+                    y: padding - gap
+                };
+            } else if (row >= config.rows) {
+                // Bottom border (below last row)
+                return {
+                    x: padding + col * (tileSize + gap) + tileSize / 2,
+                    y: padding + config.rows * (tileSize + gap) + gap
+                };
+            } else if (col < 0) {
+                // Left border (left of column 0)
+                return {
+                    x: padding - gap,
+                    y: padding + row * (tileSize + gap) + tileSize / 2
+                };
+            } else if (col >= config.cols) {
+                // Right border (right of last column)
+                return {
+                    x: padding + config.cols * (tileSize + gap) + gap,
+                    y: padding + row * (tileSize + gap) + tileSize / 2
+                };
+            }
+
+            return { x: 0, y: 0 };
+        }
+
+        // Clear canvas
+        function clearCanvas() {
+            const canvas = document.getElementById('connectionCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Play elimination sound
+        function playSound() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+
+            oscillator.start(audioCtx.currentTime);
+            oscillator.stop(audioCtx.currentTime + 0.2);
+        }
+
+        // Update UI
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('remaining').textContent = remainingTiles;
+
+            // Show infinity symbol for easy mode hints
+            const hintsElement = document.getElementById('hints');
+            if (currentDifficulty === 'easy') {
+                hintsElement.textContent = '∞';
+            } else {
+                hintsElement.textContent = hintsRemaining;
+            }
+        }
+
+        // Timer
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById('timer').textContent = 
+                    `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                if (timeLeft <= 0) {
+                    gameOver();
+                }
+            }, 1000);
+        }
+
+        // Show hint
+        function showHint() {
+            // Check if hints are limited
+            const hintsLimited = currentDifficulty !== 'easy';
+            if (hintsLimited && hintsRemaining <= 0) return;
+            if (isProcessing) return;
+
+            const pair = findMatchingPair();
+            if (pair) {
+                // Only decrease hints for medium and hard difficulty
+                if (hintsLimited) {
+                    hintsRemaining--;
+                }
+                updateUI();
+
+                const tile1 = getTileElement(pair[0].row, pair[0].col);
+                const tile2 = getTileElement(pair[1].row, pair[1].col);
+
+                if (tile1) tile1.classList.add('hint');
+                if (tile2) tile2.classList.add('hint');
+
+                setTimeout(() => {
+                    if (tile1) tile1.classList.remove('hint');
+                    if (tile2) tile2.classList.remove('hint');
+                }, 1500);
+            } else {
+                alert('没有可消除的图案对，请使用重排功能!');
+            }
+        }
+
+        // Find a matching pair
+        function findMatchingPair() {
+            const config = CONFIG[currentDifficulty];
+            
+            for (let row1 = 0; row1 < config.rows; row1++) {
+                for (let col1 = 0; col1 < config.cols; col1++) {
+                    if (board[row1][col1] === null) continue;
+
+                    for (let row2 = 0; row2 < config.rows; row2++) {
+                        for (let col2 = 0; col2 < config.cols; col2++) {
+                            if (row1 === row2 && col1 === col2) continue;
+                            if (board[row2][col2] === null) continue;
+                            if (board[row1][col1] !== board[row2][col2]) continue;
+
+                            const tile1 = { row: row1, col: col1 };
+                            const tile2 = { row: row2, col: col2 };
+
+                            if (findPath(tile1, tile2)) {
+                                return [tile1, tile2];
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Shuffle board
+        function shuffleBoard() {
+            if (isProcessing) return;
+
+            const config = CONFIG[currentDifficulty];
+            let tiles = [];
+
+            // Collect all remaining tiles
+            for (let row = 0; row < config.rows; row++) {
+                for (let col = 0; col < config.cols; col++) {
+                    if (board[row][col] !== null) {
+                        tiles.push(board[row][col]);
+                    }
+                }
+            }
+
+            // Shuffle
+            tiles = shuffleArray(tiles);
+
+            // Redistribute
+            let index = 0;
+            for (let row = 0; row < config.rows; row++) {
+                for (let col = 0; col < config.cols; col++) {
+                    if (board[row][col] !== null) {
+                        board[row][col] = tiles[index++];
+                    }
+                }
+            }
+
+            // Subtract score penalty
+            score = Math.max(0, score - 20);
+            updateUI();
+
+            clearSelection();
+            renderBoard();
+        }
+
+        // Set difficulty
+        function setDifficulty(difficulty) {
+            currentDifficulty = difficulty;
+            
+            // Update button states
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            restartGame();
+        }
+
+        // Win game
+        function winGame() {
+            clearInterval(timerInterval);
+            
+            const minutes = Math.floor((CONFIG[currentDifficulty].timeLimit - timeLeft) / 60);
+            const seconds = (CONFIG[currentDifficulty].timeLimit - timeLeft) % 60;
+            
+            document.getElementById('finalScore').textContent = `得分: ${score}`;
+            document.getElementById('finalTime').textContent = 
+                `用时: ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('winModal').classList.add('show');
+        }
+
+        // Game over
+        function gameOver() {
+            clearInterval(timerInterval);
+            
+            document.getElementById('gameOverScore').textContent = `得分: ${score}`;
+            document.getElementById('gameOverModal').classList.add('show');
+        }
+
+        // Close modal and restart
+        function closeModalAndRestart() {
+            document.getElementById('winModal').classList.remove('show');
+            document.getElementById('gameOverModal').classList.remove('show');
+            restartGame();
+        }
+
+        // Restart game
+        function restartGame() {
+            clearInterval(timerInterval);
+            clearSelection();
+            clearCanvas();
+            initGame();
+        }
+
+        // Initialize on load
+        window.onload = initGame;
+    </script>
+</body>
+</html>
